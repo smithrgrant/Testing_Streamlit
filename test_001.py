@@ -1,13 +1,20 @@
 import streamlit as st
 import pandas as pd
+import os 
 
 # Load data
 # Ensure the CSV file 'catering_items_weight_shares.csv' is in the same directory
 # C:\Users\grobe\OneDrive\Documents\GitHub\Catering\catering_items_weight_shares.csv
+
+# Determine base directory of this script and reference CSV in same folder
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_FILENAME = 'catering_items_weight_shares.csv'
+CSV_PATH = os.path.join(BASE_DIR, CSV_FILENAME)
+
 @st.cache_data
+# Load data from the CSV located alongside this script
 def load_data():
-    df = pd.read_csv(r"C:\Users\grobe\OneDrive\Documents\GitHub\Catering\catering_items_weight_shares.csv")
-    
+    df = pd.read_csv(CSV_PATH)
     return df
 
 df = load_data()
