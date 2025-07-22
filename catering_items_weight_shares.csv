@@ -1,0 +1,76 @@
+Item #,Item Name,Component,Servings,Cost per oz ($),Weight per Component (oz),Market Price per oz ($),Cost per Component ($)
+1,Chicken Cheesesteak,Chicken,50,0.5,3.0,0.15,0.44999999999999996
+1,Chicken Cheesesteak,Cheese,50,0.5,1.2000000000000002,0.2,0.24000000000000005
+1,Chicken Cheesesteak,Onions,50,0.5,0.6000000000000001,0.04,0.024000000000000004
+1,Chicken Cheesesteak,Bread,50,0.5,1.2000000000000002,0.03,0.036000000000000004
+2,Veggie Platter,Carrots,40,0.3,1.0,0.03,0.03
+2,Veggie Platter,Cucumber,40,0.3,1.0,0.03,0.03
+2,Veggie Platter,Peppers,40,0.3,1.0,0.06,0.06
+2,Veggie Platter,Dip,40,0.3,1.0,0.1,0.1
+3,Mini Quiche,Egg,60,0.45,1.2000000000000002,0.09,0.10800000000000001
+3,Mini Quiche,Cheese,60,0.45,0.6000000000000001,0.2,0.12000000000000002
+3,Mini Quiche,Spinach,60,0.45,0.6000000000000001,0.05,0.030000000000000006
+3,Mini Quiche,Crust,60,0.45,0.6000000000000001,0.04,0.024000000000000004
+4,Spring Rolls,Cabbage,50,0.35,0.875,0.03,0.02625
+4,Spring Rolls,Carrot,50,0.35,0.625,0.03,0.01875
+4,Spring Rolls,Rice Paper,50,0.35,0.625,0.1,0.0625
+4,Spring Rolls,Sauce,50,0.35,0.375,0.05,0.018750000000000003
+5,Fruit Platter,Melon,30,0.25,2.0,0.04,0.08
+5,Fruit Platter,Berries,30,0.25,1.0,0.1,0.1
+5,Fruit Platter,Grapes,30,0.25,1.0,0.05,0.05
+5,Fruit Platter,Pineapple,30,0.25,1.0,0.05,0.05
+6,Beef Sliders,Beef Patty,45,0.55,2.0,0.25,0.5
+6,Beef Sliders,Bun,45,0.55,0.8,0.02,0.016
+6,Beef Sliders,Pickles,45,0.55,0.4,0.04,0.016
+6,Beef Sliders,Cheese,45,0.55,0.8,0.2,0.16000000000000003
+7,Turkey Club Wrap,Turkey,40,0.6,1.5,0.14,0.21000000000000002
+7,Turkey Club Wrap,Bacon,40,0.6,1.0,0.25,0.25
+7,Turkey Club Wrap,Lettuce,40,0.6,0.5,0.02,0.01
+7,Turkey Club Wrap,Tomato,40,0.6,0.5,0.05,0.025
+7,Turkey Club Wrap,Tortilla,40,0.6,1.5,0.04,0.06
+8,Cheese and Crackers,Cheddar,25,0.65,1.2000000000000002,0.2,0.24000000000000005
+8,Cheese and Crackers,Brie,25,0.65,0.8999999999999999,0.3,0.26999999999999996
+8,Cheese and Crackers,Crackers,25,0.65,0.8999999999999999,0.02,0.018
+9,Meatball Skewers,Meatball,35,0.55,2.4,0.2,0.48
+9,Meatball Skewers,Marinara,35,0.55,0.8,0.08,0.064
+9,Meatball Skewers,Parmesan,35,0.55,0.4,0.25,0.1
+9,Meatball Skewers,Skewer,35,0.55,0.4,0.0,0.0
+10,Caprese Skewers,Mozzarella,30,0.7,0.8,0.18,0.144
+10,Caprese Skewers,Tomato,30,0.7,0.8,0.05,0.04000000000000001
+10,Caprese Skewers,Basil,30,0.7,0.1,0.1,0.010000000000000002
+10,Caprese Skewers,Balsamic,30,0.7,0.3,0.2,0.06
+11,Shrimp Cocktail,Shrimp,50,0.8,2.0999999999999996,0.4,0.8399999999999999
+11,Shrimp Cocktail,Cocktail Sauce,50,0.8,0.6000000000000001,0.1,0.06000000000000001
+11,Shrimp Cocktail,Lemon,50,0.8,0.30000000000000004,0.03,0.009000000000000001
+12,Spinach Artichoke Dip,Spinach,20,0.5,1.7999999999999998,0.05,0.09
+12,Spinach Artichoke Dip,Artichoke,20,0.5,1.7999999999999998,0.15,0.26999999999999996
+12,Spinach Artichoke Dip,Cheese,20,0.5,1.7999999999999998,0.2,0.36
+12,Spinach Artichoke Dip,Cream,20,0.5,0.6000000000000001,0.12,0.07200000000000001
+13,Hummus with Pita,Chickpeas,40,0.4,3.0,0.07,0.21000000000000002
+13,Hummus with Pita,Tahini,40,0.4,1.0,0.15,0.15
+13,Hummus with Pita,Olive Oil,40,0.4,0.5,0.25,0.125
+13,Hummus with Pita,Pita,40,0.4,0.5,0.03,0.015
+14,Chicken Satay,Chicken,45,0.75,2.4000000000000004,0.15,0.36000000000000004
+14,Chicken Satay,Satay Sauce,45,0.75,0.44999999999999996,0.1,0.045
+14,Chicken Satay,Skewer,45,0.75,0.15000000000000002,0.0,0.0
+15,Mini Tacos,Tortilla,50,0.6,0.75,0.04,0.03
+15,Mini Tacos,Beef,50,0.6,1.0,0.2,0.2
+15,Mini Tacos,Cheese,50,0.6,0.5,0.2,0.1
+15,Mini Tacos,Salsa,50,0.6,0.25,0.08,0.02
+16,Cheese Fondue,Cheese Blend,20,0.7,4.199999999999999,0.2,0.8399999999999999
+16,Cheese Fondue,Wine,20,0.7,1.2000000000000002,0.3,0.36000000000000004
+16,Cheese Fondue,Bread,20,0.7,0.6000000000000001,0.03,0.018000000000000002
+17,Sushi Rolls,Rice,30,1.0,2.0,0.02,0.04
+17,Sushi Rolls,Nori,30,1.0,0.2,0.1,0.020000000000000004
+17,Sushi Rolls,Fish,30,1.0,1.2,0.3,0.36
+17,Sushi Rolls,Avocado,30,1.0,0.6,0.07,0.042
+18,Bruschetta,Bread,35,0.45,1.0,0.03,0.03
+18,Bruschetta,Tomato,35,0.45,0.6,0.05,0.03
+18,Bruschetta,Basil,35,0.45,0.2,0.1,0.020000000000000004
+18,Bruschetta,Olive Oil,35,0.45,0.2,0.25,0.05
+19,Chocolate Covered Strawberries,Strawberries,60,0.9,0.8999999999999999,0.12,0.10799999999999998
+19,Chocolate Covered Strawberries,Chocolate,60,0.9,0.6000000000000001,0.2,0.12000000000000002
+20,Deviled Eggs,Egg,50,0.35,1.4,0.09,0.126
+20,Deviled Eggs,Mayo,50,0.35,0.4,0.1,0.04000000000000001
+20,Deviled Eggs,Mustard,50,0.35,0.1,0.08,0.008
+20,Deviled Eggs,Paprika,50,0.35,0.1,0.25,0.025
