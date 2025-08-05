@@ -1,0 +1,20 @@
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Environment variables
+.env
+.env.*
+
+# Python cache / artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VSCode settings (optional)
+.vscode/
+
+# macOS Finder files
+.DS_Store
+
+# Logs
+*.log
