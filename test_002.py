@@ -88,8 +88,8 @@ if st.session_state.screen == 'order':
 else:
     quote_screen()
 
-# Footer instructions
-st.markdown(
-    "---\n"
-    "**Instructions:** Ensure `catering_items_weight_shares.csv` is alongside this script. Run with `streamlit run catering_dashboard.py`."
-)
+# # Footer instructions
+# st.markdown(
+#     "---\n"
+#     "**Instructions:** Ensure `catering_items_weight_shares.csv` is alongside this script. Run with `streamlit run catering_dashboard.py`."
+# )
