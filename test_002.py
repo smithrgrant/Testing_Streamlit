@@ -2,94 +2,124 @@ import os
 import streamlit as st
 import pandas as pd
 
-# Determine base directory of this script and reference CSV in same folder
+# Determine base directory and CSV path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CSV_FILENAME = 'catering_items_weight_shares.csv'
-CSV_PATH = os.path.join(BASE_DIR, CSV_FILENAME)
+CSV_PATH = os.path.join(BASE_DIR, 'catering_items_weight_shares.csv')
 
 @st.cache_data
-# Load data from the CSV located alongside this script
+# Load dataset
 def load_data():
     return pd.read_csv(CSV_PATH)
 
-# Initialize session state for screen management
-if 'screen' not in st.session_state:
-    st.session_state.screen = 'order'
-
-# Load and prepare data
 df = load_data()
-grouped = (
-    df.groupby(['Item #', 'Item Name', 'Servings'])['Cost per Component ($)']
+
+# Prepare cost lookup and default servings
+grouped_costs = (
+    df.groupby(['Item Name', 'Servings'])['Cost per Component ($)']
       .sum()
       .reset_index()
       .rename(columns={'Cost per Component ($)': 'Cost per Serving ($)'})
 )
-item_cost = dict(zip(grouped['Item Name'], grouped['Cost per Serving ($)']))
-default_servings = dict(zip(grouped['Item Name'], grouped['Servings']))
+item_cost = dict(zip(grouped_costs['Item Name'], grouped_costs['Cost per Serving ($)']))
+default_servings = dict(zip(grouped_costs['Item Name'], grouped_costs['Servings']))
 
-# Page configuration
+# Build a description map based on components
+desc_map = {}
+for item, sub in df.groupby('Item Name'):
+    comps = sorted(sub['Component'].unique())
+    desc_map[item] = f"Includes: {', '.join(comps)}."
+
+# Category assignments
+category_map = {
+    'Mini Quiche': 'appetizers', 'Spring Rolls': 'appetizers', 'Caprese Skewers': 'appetizers',
+    'Shrimp Cocktail': 'appetizers', 'Bruschetta': 'appetizers', 'Deviled Eggs': 'appetizers',
+    'Meatball Skewers': 'appetizers', 'Sushi Rolls': 'appetizers', 'Chicken Satay': 'appetizers',
+    'Hummus with Pita': 'appetizers',
+
+    'Chicken Cheesesteak': 'entrees', 'Beef Sliders': 'entrees', 'Mini Tacos': 'entrees',
+    'Turkey Club Wrap': 'entrees', 'Cheese Fondue': 'entrees',
+
+    'Veggie Platter': 'sides', 'Fruit Platter': 'sides', 'Cheese and Crackers': 'sides',
+    'Spinach Artichoke Dip': 'sides',
+
+    'Chocolate Covered Strawberries': 'desserts'
+}
+
+# Page and session state setup
 st.set_page_config(page_title="Catering Dashboard", layout="wide")
+if 'screen' not in st.session_state:
+    st.session_state.screen = 'appetizers'
+if 'selected' not in st.session_state:
+    st.session_state.selected = {}
 
-# Order screen
-def order_screen():
-    st.title("🍴 Build Your Catering Quote")
-    st.sidebar.header("Select Items and Adjust Servings")
-    selected = {}
-    for item in grouped['Item Name']:
-        include_item = st.sidebar.checkbox(item, key=f"inc_{item}")
-        if include_item:
-            servings = st.sidebar.slider(
-                label=f"Servings for {item}",
-                min_value=0,
-                max_value=default_servings[item] * 2,
-                value=default_servings[item],
-                step=1,
-                key=f"serv_{item}"
-            )
-            selected[item] = servings
+# Helper to build summary DataFrame
+def build_summary():
+    if not st.session_state.selected:
+        return None
+    return pd.DataFrame([
+        (item, serv, item_cost[item], serv * item_cost[item])
+        for item, serv in st.session_state.selected.items()
+    ], columns=["Item Name", "Servings", "Cost per Serving ($)", "Total Cost ($)"])
 
-    if selected:
-        summary = pd.DataFrame(
-            [
-                (item, servings, item_cost[item], servings * item_cost[item])
-                for item, servings in selected.items()
-            ],
-            columns=["Item Name", "Servings", "Cost per Serving ($)", "Total Cost ($)"]
-        )
-        grand_total = summary["Total Cost ($)"].sum()
+# Generic selection screen
+def selection_screen(category, title):
+    st.title(f"Select {title}")
+    items = [item for item, cat in category_map.items() if cat == category]
+    for item in items:
+        with st.expander(f"{item} — ${item_cost[item]:.2f} per serving"):
+            c1, c2 = st.columns([3, 1])
+            # Checkbox to include item
+            include = c1.checkbox(f"Include {item}", key=f"inc_{category}_{item}")
+            c1.write(desc_map[item])
+            if include:
+                # Slider for servings
+                servings = c2.slider(
+                    label="Servings",
+                    min_value=0,
+                    max_value=default_servings[item] * 2,
+                    value=st.session_state.selected.get(item, default_servings[item]),
+                    step=1,
+                    key=f"serv_{category}_{item}"
+                )
+                st.session_state.selected[item] = servings
+            else:
+                # Remove if previously selected
+                st.session_state.selected.pop(item, None)
 
-        st.subheader("Order Summary Draft")
-        st.dataframe(summary)
-        st.metric("Current Total", f"${grand_total:.2f}")
-        if st.button("Finalize Quote"):
-            # Save quote data to session and switch screen
-            st.session_state.quote_summary = summary
-            st.session_state.quote_total = grand_total
-            st.session_state.screen = 'quote'
+    # Show running total
+    summary_df = build_summary()
+    total = summary_df['Total Cost ($)'].sum() if summary_df is not None else 0
+    st.metric("Current Total", f"${total:.2f}")
+
+    # Navigation buttons
+    back, forward = st.columns(2)
+    with back:
+        if st.button("Back") and category != 'appetizers':
+            st.session_state.screen = screens[screens.index(category) - 1]
+    with forward:
+        label = "Next" if category != 'desserts' else "Review Summary"
+        if st.button(label):
+            st.session_state.screen = screens[screens.index(category) + 1]
+
+# Summary screen
+def summary_screen():
+    st.title("📄 Final Catering Quote")
+    summary_df = build_summary()
+    if summary_df is not None:
+        total = summary_df["Total Cost ($)"].sum()
+        cols = st.columns([1, 2, 1])
+        with cols[1]:
+            st.subheader("Final Summary")
+            st.dataframe(summary_df)
+            st.metric("Grand Total", f"${total:.2f}")
     else:
-        st.write("Select items in the sidebar to build your order.")
-
-# Quote review screen
-def quote_screen():
-    st.title("📄 Finalized Catering Quote")
-    summary = st.session_state.get('quote_summary')
-    total = st.session_state.get('quote_total')
-    if summary is not None:
-        st.dataframe(summary)
-        st.metric("Grand Total", f"${total:.2f}")
-        if st.button("Back to Order"):
-            st.session_state.screen = 'order'
-    else:
-        st.error("No quote found. Please build your quote first.")
+        st.write("No items selected.")
+    if st.button("Back to Desserts"):
+        st.session_state.screen = 'desserts'
 
 # Screen dispatcher
-if st.session_state.screen == 'order':
-    order_screen()
+screens = ['appetizers', 'entrees', 'sides', 'desserts', 'summary']
+if st.session_state.screen != 'summary':
+    selection_screen(st.session_state.screen, st.session_state.screen.capitalize())
 else:
-    quote_screen()
-
-# # Footer instructions
-# st.markdown(
-#     "---\n"
-#     "**Instructions:** Ensure `catering_items_weight_shares.csv` is alongside this script. Run with `streamlit run catering_dashboard.py`."
-# )
+    summary_screen()
