@@ -1,279 +1,242 @@
+import os
+import streamlit as st
 import pandas as pd
-from pathlib import Path
-from datetime import datetime
-from jinja2 import Template
-import webbrowser
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-# ---------- CONFIG ----------
-EXCEL_PATH = Path("catering_quotes.xlsx")   # your workbook
-FILTER_COL  = "QuoteID"                     # how to pick the row
-FILTER_VAL  = 1001                          # value to match
-OUT_DIR     = Path("quotes_out")            # where HTML goes
-# ----------------------------
+# --- Configuration ---
+st.set_page_config(page_title="Catering Dashboard", layout="wide")
 
-# (Optional) fake data if file is missing
-def seed_fake(path: Path):
-    if path.exists():
-        return
-    df = pd.DataFrame([
-        {
-            "QuoteID": 1001,
-            "ClientName": "Acme Corp",
-            "ContactEmail": "events@acme.com",
-            "EventDate": "2025-08-15",
-            "Headcount": 75,
-            "MenuItems": "Roasted Chicken; Seasonal Veggies; Quinoa Salad; Lemon Tart",
-            "ItemCosts": "12.50; 4.25; 5.10; 3.75",
-            "ServiceFeePct": 0.15,
-            "TaxPct": 0.06,
-            "Notes": "Buffet style. Gluten-free options for 8 guests."
-        },
-        {
-            "QuoteID": 1002,
-            "ClientName": "Sunrise Weddings",
-            "ContactEmail": "info@sunriseweddings.com",
-            "EventDate": "2025-09-02",
-            "Headcount": 120,
-            "MenuItems": "Filet Mignon; Lobster Tail; Caesar Salad; Chocolate Mousse",
-            "ItemCosts": "28.00; 26.00; 3.25; 4.50",
-            "ServiceFeePct": 0.18,
-            "TaxPct": 0.07,
-            "Notes": "Plated dinner. Vegan mains for 10 guests."
-        },
-    ])
-    df.to_excel(path, index=False)
-
-# Simple Jinja2 HTML template
-HTML_TMPL = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Catering Quote {{ quote_id }}</title>
-<link rel="preconnect" href="https://fonts.gstatic.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+# --- Custom CSS for Aesthetic UI ---
+st.markdown("""
 <style>
-:root{
-  --accent:#3f6ad8;
-  --light:#f5f7fa;
-  --gray:#6b7280;
-  --border:#e5e7eb;
-  --text:#1f2937;
+/* Full-screen gradient background */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #4ca1af, #2c3e50);
+    color: #ecf0f1;
+    font-family: 'Roboto', sans-serif;
+    padding: 2rem;
 }
-body{
-  margin:0;
-  font-family:'Montserrat', sans-serif;
-  background:var(--light);
-  color:var(--text);
+/* Sidebar styling */
+[data-testid="stSidebar"] {
+    background: #1f2833;
+    color: #ecf0f1;
+    padding-top: 2rem;
 }
-.wrapper{
-  max-width:900px;
-  margin:40px auto;
-  background:white;
-  box-shadow:0 8px 20px rgba(0,0,0,.08);
-  border-radius:16px;
-  overflow:hidden;
+/* Headers */
+h1, h2, h3, .stTitle {
+    color: #ff6f61;
+    font-weight: 700;
 }
-.header{
-  background:var(--accent);
-  color:white;
-  padding:32px 40px 24px;
-  text-align:center;
+/* Buttons styling */
+.stButton>button {
+    background-color: #ff6f61;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: transform 0.1s ease;
 }
-.header h1{
-  margin:0 0 8px;
-  font-weight:600;
-  font-size:28px;
+.stButton>button:hover {
+    background-color: #ff4f41;
+    transform: translateY(-2px);
 }
-.section{
-  padding:28px 40px;
-  border-bottom:1px solid var(--border);
+/* Expander card style */
+.css-1rs6os.edgvbvh3 {
+    background: rgba(0,0,0,0.4);
+    color: #ecf0f1;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
 }
-.section:last-child{
-  border-bottom:none;
+/* Slider accent color */
+.css-1kyxreq .css-1lcbmhc {
+    color: #ff6f61;
 }
-.section h2{
-  margin:0 0 14px;
-  font-size:18px;
-  font-weight:600;
-  color:var(--accent);
+/* Table styling */
+.stDataFrame td, .stDataFrame th {
+    background-color: rgba(0,0,0,0.6);
+    color: #ecf0f1;
 }
-.kv{
-  display:flex;
-  margin-bottom:6px;
-}
-.kv span.key{
-  width:140px;
-  font-weight:600;
-  color:var(--gray);
-}
-.kv span.val{
-  flex:1;
-}
-.table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:8px;
-}
-.table th{
-  background:var(--light);
-  text-align:left;
-  padding:10px 12px;
-  border-bottom:2px solid var(--border);
-  font-weight:600;
-  font-size:14px;
-}
-.table td{
-  padding:8px 12px;
-  border-bottom:1px solid var(--border);
-  font-size:14px;
-}
-.table td.num{
-  text-align:right;
-}
-.total-row td{
-  font-weight:600;
-  background:var(--light);
-}
-.notes{
-  line-height:1.5;
-  white-space:pre-wrap;
-}
-.footer{
-  text-align:center;
-  padding:16px 0 28px;
-  font-size:12px;
-  color:var(--gray);
+.stDataFrame tr:nth-child(even) td {
+    background-color: rgba(255,255,255,0.05);
 }
 </style>
-</head>
-<body>
-<div class="wrapper">
-  <div class="header">
-    <h1>Catering Quote</h1>
-    <div>Generated {{ generated }}</div>
-  </div>
+""", unsafe_allow_html=True)
 
-  <div class="section">
-    <h2>Client &amp; Event Details</h2>
-    <div class="kv"><span class="key">Quote ID:</span><span class="val">{{ quote_id }}</span></div>
-    <div class="kv"><span class="key">Client:</span><span class="val">{{ client }}</span></div>
-    <div class="kv"><span class="key">Email:</span><span class="val">{{ email }}</span></div>
-    <div class="kv"><span class="key">Event Date:</span><span class="val">{{ event_date }}</span></div>
-    <div class="kv"><span class="key">Headcount:</span><span class="val">{{ headcount }}</span></div>
-  </div>
+# --- Load Data ---
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_PATH = os.path.join(BASE_DIR, 'catering_items_weight_shares.csv')
+@st.cache_data
+def load_data():
+    return pd.read_csv(CSV_PATH)
 
-  <div class="section">
-    <h2>Menu &amp; Pricing (per person)</h2>
-    <table class="table">
-      <thead>
-        <tr><th>Item</th><th class="num">Cost ($)</th></tr>
-      </thead>
-      <tbody>
-      {% for item, cost in rows %}
-        <tr>
-          <td>{{ item }}</td>
-          <td class="num">{{ "{:,.2f}".format(cost) }}</td>
-        </tr>
-      {% endfor %}
-        <tr class="total-row">
-          <td>Subtotal / Person</td>
-          <td class="num">{{ "{:,.2f}".format(subtotal_pp) }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+df = load_data()
 
-  <div class="section">
-    <h2>Totals</h2>
-    <table class="table">
-      <tbody>
-        <tr><td>Food Subtotal</td><td class="num">${{ "{:,.2f}".format(subtotal_total) }}</td></tr>
-        <tr><td>Service Fee ({{ svc_pct }}%)</td><td class="num">${{ "{:,.2f}".format(service_fee) }}</td></tr>
-        <tr><td>Tax ({{ tax_pct }}%)</td><td class="num">${{ "{:,.2f}".format(tax) }}</td></tr>
-        <tr class="total-row"><td>Grand Total</td><td class="num">${{ "{:,.2f}".format(grand_total) }}</td></tr>
-      </tbody>
-    </table>
-  </div>
+# --- Prepare Data ---
+grouped = (
+    df.groupby(['Item Name', 'Servings'])['Cost per Component ($)']
+      .sum().reset_index()
+      .rename(columns={'Cost per Component ($)': 'Cost per Serving ($)'})
+)
+item_cost = dict(zip(grouped['Item Name'], grouped['Cost per Serving ($)']))
+default_servings = dict(zip(grouped['Item Name'], grouped['Servings']))
+desc_map = {item: 'Includes: ' + ', '.join(sorted(sub['Component'].unique())) + '.'
+            for item, sub in df.groupby('Item Name')}
+category_map = {
+    'Mini Quiche': 'appetizers', 'Spring Rolls': 'appetizers', 'Caprese Skewers': 'appetizers',
+    'Shrimp Cocktail': 'appetizers', 'Bruschetta': 'appetizers', 'Deviled Eggs': 'appetizers',
+    'Meatball Skewers': 'appetizers', 'Sushi Rolls': 'appetizers', 'Chicken Satay': 'appetizers',
+    'Hummus with Pita': 'appetizers',
+    'Chicken Cheesesteak': 'entrees', 'Beef Sliders': 'entrees', 'Mini Tacos': 'entrees',
+    'Turkey Club Wrap': 'entrees', 'Cheese Fondue': 'entrees',
+    'Veggie Platter': 'sides', 'Fruit Platter': 'sides', 'Cheese and Crackers': 'sides',
+    'Spinach Artichoke Dip': 'sides',
+    'Chocolate Covered Strawberries': 'desserts'
+}
+screens = ['info', 'appetizers', 'entrees', 'sides', 'desserts', 'summary']
 
-  <div class="section">
-    <h2>Notes / Special Instructions</h2>
-    <div class="notes">{{ notes }}</div>
-  </div>
+# --- Session State Initialization ---
+st.session_state.setdefault('screen', 'info')
+st.session_state.setdefault('selected', {})
+st.session_state.setdefault('name', '')
+st.session_state.setdefault('email', '')
+st.session_state.setdefault('event_type', '')
+st.session_state.setdefault('event_date', None)
 
-  <div class="footer">
-    © {{ year }} Your Catering Co. — Thank you for considering us!
-  </div>
-</div>
-</body>
-</html>
-"""
+# --- Email Helper ---
+SMTP_SERVER = st.secrets.get('smtp_server') or os.environ.get('SMTP_SERVER')
+SMTP_PORT = int(st.secrets.get('smtp_port', 587) or os.environ.get('SMTP_PORT', 587))
+SMTP_USER = st.secrets.get('smtp_user') or os.environ.get('SMTP_USER')
+SMTP_PASS = st.secrets.get('smtp_pass') or os.environ.get('SMTP_PASS')
+FROM_EMAIL = SMTP_USER
 
-def main():
-    seed_fake(EXCEL_PATH)  # remove in production
+def send_email(to_email, subject, html_body):
+    msg = MIMEMultipart('alternative')
+    msg['From'] = FROM_EMAIL
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(html_body, 'html'))
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
 
-    df = pd.read_excel(EXCEL_PATH)
-    sel = df.loc[df[FILTER_COL] == FILTER_VAL]
-    if sel.empty:
-        raise ValueError(f"No row where {FILTER_COL} == {FILTER_VAL}")
-    row = sel.iloc[0]
+# --- Build Summary DataFrame ---
+def build_summary():
+    sel = st.session_state['selected']
+    if not sel:
+        return None
+    return pd.DataFrame([
+        (item, sel[item], round(sel[item] * item_cost[item], 2))
+        for item in sel
+    ], columns=['Item Name', 'Servings', 'Total Cost ($)'])
 
-    items = [i.strip() for i in str(row["MenuItems"]).split(";")]
-    costs = [float(c.strip()) for c in str(row["ItemCosts"]).split(";")]
-    if len(items) != len(costs):
-        raise ValueError("MenuItems and ItemCosts counts differ")
+# --- Navigation Callbacks ---
+def go_to(screen): st.session_state['screen'] = screen
 
-    subtotal_pp    = sum(costs)
-    subtotal_total = subtotal_pp * row["Headcount"]
-    service_fee    = subtotal_total * float(row["ServiceFeePct"])
-    tax            = (subtotal_total + service_fee) * float(row["TaxPct"])
-    grand_total    = subtotal_total + service_fee + tax
+def start_order(): go_to('appetizers')
 
-    ctx = {
-        "generated":   datetime.now().strftime("%B %d, %Y"),
-        "quote_id":    row["QuoteID"],
-        "client":      row["ClientName"],
-        "email":       row["ContactEmail"],
-        "event_date":  pd.to_datetime(row["EventDate"]).strftime("%B %d, %Y"),
-        "headcount":   row["Headcount"],
-        "rows":        list(zip(items, costs)),
-        "subtotal_pp": subtotal_pp,
-        "subtotal_total": subtotal_total,
-        "service_fee": service_fee,
-        "tax":         tax,
-        "grand_total": grand_total,
-        "svc_pct":     int(row["ServiceFeePct"] * 100),
-        "tax_pct":     int(row["TaxPct"] * 100),
-        "notes":       row["Notes"] if pd.notna(row["Notes"]) else "—",
-        "year":        datetime.now().year
-    }
+def back_screen(): go_to(screens[screens.index(st.session_state['screen']) - 1])
 
-    html = Template(HTML_TMPL).render(**ctx)
+def next_screen(): go_to(screens[screens.index(st.session_state['screen']) + 1])
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = OUT_DIR / f"Quote_{row['QuoteID']}.html"
-    out_path.write_text(html, encoding="utf-8")
+def send_quote():
+    df_sum = build_summary()
+    # build HTML email
+    rows = ''.join(
+        f"<tr><td>{row['Item Name']}</td><td>{row['Servings']}</td><td>${row['Total Cost ($)']:.2f}</td></tr>"
+        for _, row in df_sum.iterrows()
+    )
+    html = f"""
+    <html>
+      <body style='font-family:Arial,sans-serif;line-height:1.6;color:#333;'>
+        <h2 style='color:#ff6f61;'>Your Catering Quote</h2>
+        <h3>Event Details</h3>
+        <ul>
+          <li><strong>Name:</strong> {st.session_state['name']}</li>
+          <li><strong>Email:</strong> {st.session_state['email']}</li>
+          <li><strong>Event Type:</strong> {st.session_state['event_type']}</li>
+          <li><strong>Event Date:</strong> {st.session_state['event_date']}</li>
+        </ul>
+        <h3>Order Summary</h3>
+        <table style='width:100%;border-collapse:collapse;'>
+          <thead>
+            <tr><th style='border-bottom:2px solid #ff6f61;text-align:left;padding:8px;'>Item</th><th style='border-bottom:2px solid #ff6f61;text-align:right;padding:8px;'>Servings</th><th style='border-bottom:2px solid #ff6f61;text-align:right;padding:8px;'>Total</th></tr>
+          </thead>
+          <tbody>
+            {rows}
+          </tbody>
+        </table>
+        <h3 style='text-align:right;'>Grand Total: ${df_sum['Total Cost ($)'].sum():.2f}</h3>
+      </body>
+    </html>
+    """
+    send_email(st.session_state['email'], f"Your Catering Quote - {st.session_state['event_type']}", html)
+    st.success("Quote sent successfully!")
 
-    print("Saved:", out_path.resolve())
-    # Open in default browser
-    try:
-        webbrowser.open(out_path.resolve().as_uri())
-    except Exception:
-        pass
-
-    # html_to_pdf.py
-    from pathlib import Path
-    from weasyprint import HTML
-
-    HTML_INPUT  = Path("quotes_out/Quote_1001.html")   # your existing file
-    PDF_OUTPUT  = Path("quotes_out/Quote_1001.pdf")
-
-    html = HTML_INPUT.read_text(encoding="utf-8")
-    HTML(string=html, base_url=HTML_INPUT.parent.as_posix()).write_pdf(PDF_OUTPUT)
-
-    print("Saved ->", PDF_OUTPUT.resolve())
+# --- Screens ---
+def info_screen():
+    st.header("✨ Event Details")
+    with st.form('info_form'):
+        name_input = st.text_input("Your Name", value=st.session_state['name'])
+        email_input = st.text_input("Email Address", value=st.session_state['email'])
+        event_input = st.text_input("Type of Event", value=st.session_state['event_type'])
+        date_input = st.date_input("Event Date", value=st.session_state['event_date'])
+        if st.form_submit_button("Start Order"):
+            st.session_state['name'] = name_input
+            st.session_state['email'] = email_input
+            st.session_state['event_type'] = event_input
+            st.session_state['event_date'] = date_input
+            start_order()
 
 
-if __name__ == "__main__":
-    main()
+def selection_screen(category):
+    st.header(f"🍽️ Select {category.title()}")
+    for item in [i for i, c in category_map.items() if c == category]:
+        with st.expander(f"{item}"):
+            col1, col2 = st.columns([3, 1])
+            include = col1.checkbox(f"Include {item}", key=f"inc_{item}")
+            col1.write(desc_map[item])
+            if include:
+                qty = col2.slider(
+                    "Servings", 0, default_servings[item] * 2,
+                    st.session_state['selected'].get(item, default_servings[item]), 1,
+                    key=f"qty_{item}"
+                )
+                st.session_state['selected'][item] = qty
+            else:
+                st.session_state['selected'].pop(item, None)
+    df_sum = build_summary()
+    total = df_sum['Total Cost ($)'].sum() if df_sum is not None else 0
+    st.metric("💰 Current Total", f"${total:.2f}")
+    cols = st.columns([1,1])
+    cols[0].button("⬅️ Back", on_click=back_screen, disabled=(category=='appetizers'))
+    cols[1].button("➡️ Next", on_click=next_screen)
+
+
+def summary_screen():
+    st.header("🎉 Final Catering Quote")
+    st.subheader("Event Information")
+    st.write(f"**Name:** {st.session_state['name']}")
+    st.write(f"**Email:** {st.session_state['email']}")
+    st.write(f"**Event Type:** {st.session_state['event_type']}")
+    st.write(f"**Event Date:** {st.session_state['event_date']}")
+    df_sum = build_summary()
+    st.dataframe(df_sum, use_container_width=True)
+    total = df_sum['Total Cost ($)'].sum() if df_sum is not None else 0
+    st.metric("🏆 Grand Total", f"${total:.2f}")
+    cols = st.columns([1,1])
+    cols[0].button("⬅️ Back to Desserts", on_click=back_screen)
+    cols[1].button("✉️ Send Quote", on_click=send_quote)
+
+# --- Dispatcher ---
+if st.session_state['screen'] == 'info':
+    info_screen()
+elif st.session_state['screen'] != 'summary':
+    selection_screen(st.session_state['screen'])
+else:
+    summary_screen()
