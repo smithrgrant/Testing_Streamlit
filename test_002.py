@@ -232,15 +232,62 @@ def send_quote():
         for _, row in df_sum.iterrows()
     )
     html = f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <style>...</style>
-</head>
-<body>...</body>
-</html>
-    """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }}
+            .container {{ max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+            .header {{ background: #2a9d8f; color: #fff; padding: 20px; text-align: center; }}
+            .header h1 {{ margin: 0; font-size: 24px; }}
+            .content {{ padding: 20px; }}
+            .content h2 {{ color: #264653; margin-top: 0; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
+            th, td {{ text-align: left; padding: 10px; border-bottom: 1px solid #ddd; }}
+            th {{ background: #e9ecef; }}
+            .total-row th, .total-row td {{ font-weight: bold; }}
+            .footer {{ background: #e9ecef; padding: 15px; text-align: center; font-size: 12px; color: #666; }}
+            .button {{ display: inline-block; margin-top: 20px; padding: 12px 20px; background: #e76f51; color: #fff; text-decoration: none; border-radius: 4px; }}
+        </style>
+        </head>
+        <body>
+        <div class="container">
+            <div class="header">
+            <h1>Bowtie Catering</h1>
+            </div>
+            <div class="content">
+            <p>Hi {st.session_state['name']},</p>
+            <p>Thank you for considering Bowtie Catering for your event on <strong>{st.session_state['event_date']}</strong>. Below is your customized quote:</p>
+            <h2>Event Details</h2>
+            <p>
+                <strong>Event:</strong> {st.session_state['event_type']}<br>
+                <strong>Email:</strong> {st.session_state['email']}
+            </p>
+            <h2>Your Quote</h2>
+            <table>
+                <tr><th>Menu Item</th><th>Qty</th><th>Unit Price</th><th>Line Total</th></tr>
+                {rows}
+                <tr class="total-row"><td colspan="3">Subtotal</td><td>${subtotal:.2f}</td></tr>
+                <tr><td colspan="3">Tax (8%)</td><td>${tax:.2f}</td></tr>
+                <tr class="total-row"><td colspan="3">Total</td><td>${total:.2f}</td></tr>
+            </table>
+            <p style="text-align:center;">
+                <a href="https://example.com/confirm-order" class="button">Confirm Your Quote</a>
+            </p>
+            <p>Warm regards,<br>
+            <strong>Phil Bolinger</strong><br>
+            Owner, Bowtie Catering.<br>
+            (555) 123-4567 • phil@bowtiecatering.com</p>
+            </div>
+            <div class="footer">
+            Bowtie Catering. • 123 Main St • Pottstown, PA<br>
+            <a href="https://example.com/unsubscribe">Unsubscribe</a>
+            </div>
+        </div>
+        </body>
+        </html>
+        """
     send_email(st.session_state['email'], f"Your Catering Quote - {st.session_state['event_type']}", html)
     st.success("Quote sent successfully!")
 
